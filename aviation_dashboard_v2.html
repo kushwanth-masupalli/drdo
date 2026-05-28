@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rafale Aviation Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --bg: #100808;
+  --panel: #1e0c0c;
+  --card: #280e0e;
+  --card2: #2e1010;
+  --accent: #c0392b;
+  --accent2: #e74c3c;
+  --accent3: #ff7675;
+  --blue: #2980b9;
+  --blue2: #74b9ff;
+  --green: #00b894;
+  --orange: #e17055;
+  --purple: #a29bfe;
+  --gold: #fdcb6e;
+  --text: #f0dada;
+  --text2: #9d7272;
+  --border: #3d1515;
+  --border2: #5a2020;
+  --glow: 0 0 20px rgba(192,57,43,0.25);
+  --shadow: 0 4px 24px rgba(0,0,0,0.6);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.header{
+  background:linear-gradient(90deg,#1e0808 0%,#280c0c 40%,#1e0808 100%);
+  border-bottom:1.5px solid var(--accent);
+  padding:10px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:var(--glow);
+  position:sticky;top:0;z-index:100;
+}
+.logo-area{display:flex;align-items:center;gap:14px}
+.logo-icon{font-size:28px;line-height:1}
+.title{font-family:'Orbitron',monospace;font-size:17px;font-weight:900;color:var(--accent3);letter-spacing:3px}
+.subtitle{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-top:2px}
+.page-tabs{display:flex;gap:6px}
+.ptab{
+  padding:6px 16px;border:1px solid var(--border2);background:var(--card);color:var(--text2);
+  font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border-radius:2px;
+  letter-spacing:1px;transition:all .2s;text-transform:uppercase;
+}
+.ptab.active{background:var(--accent);color:#fff;border-color:var(--accent2);box-shadow:0 0 12px rgba(192,57,43,.4)}
+.ptab:hover:not(.active){border-color:var(--accent);color:var(--text)}
+
+/* PAGES */
+.page{display:none;padding:12px 16px 20px}
+.page.active{display:block}
+
+/* SLICERS */
+.slicer-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:8px 10px;background:var(--panel);border:1px solid var(--border);border-radius:3px}
+.slicer-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:1px;margin-right:4px}
+.sbtn{
+  padding:5px 14px;border:1px solid var(--border2);background:transparent;color:var(--text2);
+  font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border-radius:2px;
+  letter-spacing:.5px;transition:all .18s;text-transform:uppercase;
+}
+.sbtn.active{background:var(--accent);border-color:var(--accent2);color:#fff;box-shadow:0 0 8px rgba(192,57,43,.35)}
+.sbtn:hover:not(.active){border-color:var(--accent);color:var(--text)}
+
+/* KPI STRIP */
+.kpi-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:12px}
+.kpi-card{
+  background:var(--card2);border:1px solid var(--border);border-top:2px solid var(--accent);
+  padding:10px 12px;border-radius:3px;position:relative;overflow:hidden;
+  transition:border-top-color .3s,box-shadow .3s;
+}
+.kpi-card:hover{box-shadow:0 0 16px rgba(192,57,43,.2);border-top-color:var(--accent2)}
+.kpi-value{font-family:'Orbitron',monospace;font-size:19px;font-weight:700;color:#fff;line-height:1.1;letter-spacing:1px}
+.kpi-value.neg{color:var(--accent3)}
+.kpi-value.pos{color:var(--green)}
+.kpi-label{font-size:9px;color:var(--text2);margin-top:3px;letter-spacing:.5px;font-family:'Share Tech Mono',monospace;text-transform:uppercase}
+
+/* GRID LAYOUTS */
+.row{display:grid;gap:10px;margin-bottom:10px}
+.col-3{grid-template-columns:repeat(3,1fr)}
+.col-2{grid-template-columns:repeat(2,1fr)}
+.col-2-1{grid-template-columns:2fr 1fr}
+.col-1-2{grid-template-columns:1fr 2fr}
+.col-3-2{grid-template-columns:3fr 2fr}
+
+/* CHART PANEL */
+.panel{
+  background:var(--card);border:1px solid var(--border);border-radius:4px;
+  padding:12px 14px;position:relative;overflow:hidden;
+}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent) 0%,transparent 70%)}
+.ptitle{font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.chart-wrap{position:relative;width:100%}
+
+/* LEGEND */
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.li{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);font-family:'Share Tech Mono',monospace}
+.ld{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.lb{width:12px;height:8px;border-radius:1px;flex-shrink:0}
+
+/* DATA TABLE */
+.tbl-wrap{overflow-x:auto;max-height:240px;overflow-y:auto}
+.tbl{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:10px}
+.tbl th{background:var(--panel);color:var(--accent3);padding:6px 10px;text-align:right;border-bottom:1px solid var(--border2);font-weight:700;white-space:nowrap;position:sticky;top:0;z-index:2;letter-spacing:.5px}
+.tbl th:first-child,.tbl th:nth-child(2){text-align:left}
+.tbl td{padding:5px 10px;border-bottom:1px solid rgba(61,21,21,.5);color:var(--text);text-align:right;white-space:nowrap;transition:background .15s}
+.tbl td:first-child{text-align:left;color:var(--accent3);font-weight:700}
+.tbl td:nth-child(2){text-align:left;color:var(--text2)}
+.tbl tr:hover td{background:rgba(192,57,43,.06)}
+.tbl tr.tr-total td{border-top:1px solid var(--border2);font-weight:700;color:var(--gold);background:var(--panel)}
+
+/* P2 KPI */
+.kpi-lg-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.kpi-lg{
+  background:var(--card2);border:1px solid var(--border);border-top:2px solid var(--blue);
+  padding:14px 18px;border-radius:3px;display:flex;flex-direction:column;justify-content:center;
+}
+.kpi-lg-val{font-family:'Orbitron',monospace;font-size:38px;font-weight:900;line-height:1;color:var(--blue2)}
+.kpi-lg-val.neg{color:var(--accent3)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+
+/* BADGE */
+.badge{display:inline-block;padding:2px 6px;border-radius:2px;font-size:9px;font-family:'Share Tech Mono',monospace;font-weight:700;letter-spacing:.5px;vertical-align:middle;margin-left:6px}
+.badge-live{background:rgba(0,184,148,.2);color:var(--green);border:1px solid var(--green)}
+
+@media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(4,1fr)}.col-3{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.kpi-strip{grid-template-columns:repeat(2,1fr)}.col-3,.col-2,.col-2-1,.col-1-2,.col-3-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo-area">
+    <div class="logo-icon">✈</div>
+    <div>
+      <div class="title">RAFALE FLIGHT INTELLIGENCE</div>
+      <div class="subtitle">MISSION ANALYTICS SYSTEM — SORTIE_001 <span class="badge badge-live">LIVE</span></div>
+    </div>
+  </div>
+  <div class="page-tabs">
+    <button class="ptab active" onclick="switchPage(0)">▶ Flight Overview</button>
+    <button class="ptab" onclick="switchPage(1)">▶ Fuel & Altitude</button>
+  </div>
+</div>
+
+<!-- ===================== PAGE 1 ===================== -->
+<div class="page active" id="page-0">
+
+  <div class="slicer-row" style="margin-top:10px">
+    <span class="slicer-label">CATEGORY FILTER:</span>
+    <button class="sbtn active" data-cat="all" onclick="sliceP1(this)">All Flights</button>
+    <button class="sbtn" data-cat="Ground Operations" onclick="sliceP1(this)">Ground Operations</button>
+    <button class="sbtn" data-cat="Landing" onclick="sliceP1(this)">Landing</button>
+    <button class="sbtn" data-cat="Mid Air" onclick="sliceP1(this)">Mid Air</button>
+    <button class="sbtn" data-cat="Takeoff" onclick="sliceP1(this)">Takeoff</button>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-strip" id="kpi-p1">
+    <div class="kpi-card"><div class="kpi-value" id="k-flights">10K</div><div class="kpi-label">Total Flights</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="k-avgspd">393.08</div><div class="kpi-label">Avg Ground Speed</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="k-maxspd">846.62</div><div class="kpi-label">Max Speed</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="k-avgalt">18.55K</div><div class="kpi-label">Avg GPS Altitude</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="k-maxalt">37.04K</div><div class="kpi-label">Max GPS Altitude</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="k-maxfuel">6,158.9</div><div class="kpi-label">Max Fuel Flow</div></div>
+    <div class="kpi-card"><div class="kpi-value" id="k-minfuel">2,222.5</div><div class="kpi-label">Min Fuel Flow</div></div>
+  </div>
+
+  <!-- ROW 1: Donut | Altitude line | Speed bar -->
+  <div class="row col-3">
+    <div class="panel">
+      <div class="ptitle">Total Flights by Category</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="c-donut"></canvas></div>
+      <div class="legend" id="lg-donut"></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Max GPS Altitude by Time-to-Waypoint (s)</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="c-alt-twp"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Avg Ground Speed by Category</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="c-spd-cat"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Speed time | Fuel grouped -->
+  <div class="row col-2">
+    <div class="panel">
+      <div class="ptitle">Avg Ground Speed by Time (s)</div>
+      <div class="chart-wrap" style="height:210px"><canvas id="c-spd-time"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Max & Min Fuel Flow by Category</div>
+      <div class="chart-wrap" style="height:210px"><canvas id="c-fuel-grp"></canvas></div>
+      <div class="legend">
+        <div class="li"><div class="lb" style="background:#74b9ff"></div>Max Fuel Flow</div>
+        <div class="li"><div class="lb" style="background:#e74c3c"></div>Min Fuel Flow</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page 1 -->
+
+<!-- ===================== PAGE 2 ===================== -->
+<div class="page" id="page-1">
+
+  <div class="slicer-row" style="margin-top:10px">
+    <span class="slicer-label">CATEGORY FILTER:</span>
+    <button class="sbtn active" data-cat="all" onclick="sliceP2(this)">All Flights</button>
+    <button class="sbtn" data-cat="Ground Operations" onclick="sliceP2(this)">Ground Operations</button>
+    <button class="sbtn" data-cat="Landing" onclick="sliceP2(this)">Landing</button>
+    <button class="sbtn" data-cat="Mid Air" onclick="sliceP2(this)">Mid Air</button>
+    <button class="sbtn" data-cat="Takeoff" onclick="sliceP2(this)">Takeoff</button>
+  </div>
+
+  <div class="kpi-lg-row">
+    <div class="kpi-lg" style="border-top-color:var(--accent3)">
+      <div class="kpi-lg-val neg" id="k-meff">-0.03</div>
+      <div class="kpi-label">Mission Efficiency (Avg Specific Excess Power)</div>
+    </div>
+    <div class="kpi-lg">
+      <div class="kpi-lg-val" id="k-fupct">7.21%</div>
+      <div class="kpi-label">Avg Fuel Usage % (Used / On Board)</div>
+    </div>
+  </div>
+
+  <!-- Waterfall + Fuel Usage bar -->
+  <div class="row col-2">
+    <div class="panel">
+      <div class="ptitle">Max Fuel Flow by Category (Waterfall)</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-wfall"></canvas></div>
+      <div class="legend">
+        <div class="li"><div class="lb" style="background:#00b894"></div>Increase</div>
+        <div class="li"><div class="lb" style="background:#e74c3c"></div>Decrease</div>
+        <div class="li"><div class="lb" style="background:#74b9ff"></div>Total</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Fuel Usage % by Category</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-fupct-bar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Scatter + Stacked Alt -->
+  <div class="row col-2">
+    <div class="panel">
+      <div class="ptitle">Ground Speed vs Time (s) by Category</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="c-scatter"></canvas></div>
+      <div class="legend" id="lg-scatter"></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Sum of INS Altitude by Category & Flight Phase</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="c-alt-stk"></canvas></div>
+      <div class="legend" id="lg-alt-stk"></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="panel">
+    <div class="ptitle">Flight Phase × Category — Indicated Airspeed & Radio Altitude (Totals)</div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr>
+      <th>Flight Phase</th><th>Category</th>
+      <th>Σ Indicated Airspeed</th><th>Σ Radio Altitude</th>
+    </tr></thead><tbody id="tbl-body"></tbody></table></div>
+  </div>
+
+</div><!-- /page 2 -->
+
+<script>
+// ======================================================
+// REAL DATA
+// ======================================================
+const CATS = ['Mid Air','Landing','Takeoff','Ground Operations'];
+const CAT_COLOR = {'Mid Air':'#74b9ff','Landing':'#e17055','Takeoff':'#a29bfe','Ground Operations':'#00b894'};
+const CAT_COLOR_ALPHA = (c,a)=>CAT_COLOR[c]+(Math.round(a*255).toString(16).padStart(2,'0'));
+
+const KPI = {
+  'all':{'totalFlights':10000,'avgSpeed':393.08,'maxSpeed':846.62,'avgAlt':18554.85,'maxAlt':37044.38,'maxFuel':6158.9,'minFuel':2222.5,'missionEff':-0.03,'fuelUsagePct':0.0721},
+  'Mid Air':{'totalFlights':4400,'avgSpeed':528.78,'maxSpeed':846.62,'avgAlt':32273.32,'maxAlt':37044.38,'maxFuel':6158.9,'minFuel':3520.8,'missionEff':0.0351,'fuelUsagePct':0.0663},
+  'Landing':{'totalFlights':3400,'avgSpeed':337.47,'maxSpeed':800.23,'avgAlt':6069.91,'maxAlt':20356.32,'maxFuel':4382.0,'minFuel':2658.5,'missionEff':0.0249,'fuelUsagePct':0.1454},
+  'Takeoff':{'totalFlights':1600,'avgSpeed':280.09,'maxSpeed':497.86,'avgAlt':14316.97,'maxAlt':35373.27,'maxFuel':6152.9,'minFuel':3786.4,'missionEff':-0.0008,'fuelUsagePct':0.0173},
+  'Ground Operations':{'totalFlights':600,'avgSpeed':14.34,'maxSpeed':24.48,'avgAlt':1.71,'maxAlt':23.22,'maxFuel':2363.1,'minFuel':2222.5,'missionEff':0.0062,'fuelUsagePct':0.0595}
+};
+
+const SPD_TIME_LABELS = [0,50,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000,1050,1100,1150,1200];
+const SPD_TIME_ALL = [15.1,108.45,218.54,339.48,453.89,478.78,480.08,480.23,481.01,480.16,479.56,479.2,492.13,566.3,661.46,737.67,725.38,600.02,430.04,306.51,269.3,222.67,176.05,121.94,23.04];
+const SPD_TIME_CAT = {
+  'Mid Air':{250:478.78,300:480.08,350:480.23,400:481.01,450:480.16,500:479.56,550:479.2,600:492.13,650:566.3,700:661.46,750:737.67},
+  'Landing':{800:725.38,850:600.02,900:430.04,950:306.51,1000:269.3,1050:222.67,1100:176.05,1150:121.94,1200:33.26},
+  'Takeoff':{50:108.45,100:218.54,150:339.48,200:453.89},
+  'Ground Operations':{0:15.1,1200:12.83}
+};
+
+const ALT_TWP_LABELS = [0,60,120,180,240,300,360,420,480,540,600,660,720,780,840,900,960,1020,1080];
+const ALT_TWP_ALL = [2475.01,3642.54,8046.51,15364.27,20074.41,24222.05,30432.68,36666.08,37044.38,35448.89,35390.84,35465.38,35397.75,35436.35,35373.27,30346.58,11664.4,1537.88,1002.53];
+const ALT_TWP_CAT = {
+  'Mid Air':{300:24222.05,360:30432.68,420:36666.08,480:37044.38,540:35448.89,600:35390.84,660:35465.38,720:35397.75,780:35436.35,840:35302.25},
+  'Landing':{0:2475.01,60:3642.54,120:8046.51,180:15364.27,240:20074.41,300:20356.32,960:139.05,1020:579.42,1080:1002.53},
+  'Takeoff':{840:35373.27,900:30346.58,960:11664.4,1020:1537.88},
+  'Ground Operations':{960:19.83,1020:23.22,1080:20.98}
+};
+
+const SCATTER = {"Mid Air":[[496.88,284.25],[552.17,678.75],[691.22,790.5],[468.63,378.38],[473.79,448.62],[479.66,287.0],[466.16,573.5],[843.02,753.12],[475.48,615.88],[667.67,760.62],[459.92,325.25],[490.74,461.75],[660.29,722.62],[465.09,324.88],[470.16,448.5],[478.32,411.88],[454.48,508.62],[720.44,753.75],[693.19,750.75],[480.57,512.38],[411.24,609.12],[552.43,657.75],[479.72,575.88],[569.4,684.75],[480.38,576.75],[615.08,714.0],[470.79,514.88],[473.86,297.0],[498.25,467.62],[492.17,428.25],[494.28,562.25],[419.73,666.38],[465.65,396.88],[468.99,441.62],[482.52,541.38],[488.01,544.62],[744.59,799.88],[771.66,787.88],[486.47,378.62],[497.88,531.5],[556.86,655.38],[488.39,600.88],[783.88,796.0],[480.49,434.88],[506.98,681.75],[494.21,581.12],[522.05,670.75],[460.69,263.62],[476.92,358.88],[454.11,543.12]],"Landing":[[735.41,836.38],[544.05,894.38],[239.12,1062.0],[672.32,854.0],[626.87,859.88],[259.71,1034.12],[643.75,862.62],[236.33,1071.38],[166.79,1147.62],[90.12,1186.62],[282.21,990.62],[592.07,868.88],[277.02,1001.38],[275.9,980.25],[492.27,904.88],[456.89,918.12],[373.64,941.88],[206.81,1096.5],[267.67,1026.62],[727.07,821.25],[172.58,1147.88],[752.95,828.62],[268.32,1021.88],[497.61,899.75],[154.91,1161.38],[49.8,1204.88],[715.65,837.25],[271.26,1018.62],[723.75,818.0],[277.41,1001.5],[770.46,804.0],[201.02,1084.88],[146.66,1168.88],[742.82,806.38],[214.68,1074.38],[158.44,1152.38],[270.06,1017.88],[443.57,923.12],[244.15,1044.0],[173.08,1130.75],[679.18,849.12],[735.23,822.88],[49.18,1204.38],[64.2,1198.75],[259.97,1037.0],[517.95,908.0],[759.4,808.75],[703.86,832.12],[712.12,829.88],[352.36,943.62]],"Takeoff":[[212.25,115.75],[187.42,94.25],[92.15,71.0],[69.28,66.88],[314.12,167.12],[487.37,243.0],[405.98,206.62],[145.02,79.62],[193.63,109.75],[230.18,131.25],[197.93,114.25],[377.13,187.88],[323.9,171.0],[478.57,246.12],[206.84,123.0],[37.16,58.12],[23.56,53.75],[312.22,163.0],[175.16,95.88],[399.85,191.75],[463.3,235.88],[185.48,110.62],[462.97,243.5],[184.69,96.75],[15.48,53.62],[391.61,192.75],[328.01,169.75],[463.0,233.25],[185.7,91.5],[233.79,139.0],[31.44,58.75],[172.51,86.12],[343.43,173.38],[467.39,240.75],[181.07,102.0],[362.34,185.88],[179.17,90.5],[229.74,127.12],[192.38,97.5],[90.96,71.62],[220.28,129.25],[231.47,137.62],[483.84,240.12],[22.97,52.88],[480.66,240.38],[13.27,54.0],[196.86,120.75],[44.23,62.38],[203.79,114.75],[403.0,198.38]],"Ground Operations":[[17.68,13.75],[18.44,1227.38],[5.99,1245.62],[12.81,9.62],[11.12,22.62],[16.22,35.5],[14.19,1.25],[16.47,1233.62],[13.06,9.75],[16.65,43.62],[13.29,6.88],[14.98,14.75],[19.54,13.62],[2.24,1248.5],[15.7,46.12],[12.04,29.25],[16.31,3.75],[14.46,26.5],[18.49,23.0],[13.16,10.75],[18.23,0.25],[2.52,1248.38],[8.03,1241.88],[5.42,1249.5],[14.99,46.0],[5.71,1242.38],[14.61,9.0],[13.79,16.88],[4.81,1244.5],[17.73,1229.62],[3.65,1249.38],[16.62,20.38],[10.26,10.25],[15.29,32.12],[11.18,24.0],[17.92,1231.62],[14.27,16.5],[8.28,1239.38],[20.68,1230.12],[16.56,34.38],[14.26,45.5],[18.33,3.62],[13.38,1238.25],[5.73,1246.25],[24.47,3.0],[12.62,22.75],[14.07,1234.12],[12.81,13.0],[12.28,7.88],[16.07,1236.25]]};
+
+const INS_ALT_PHASES = ['approach','climb','combat','cruise','descent','landing','takeoff','taxi','taxi2'];
+const INS_ALT_COLORS = ['#e74c3c','#3498db','#8e44ad','#2ecc71','#e67e22','#f39c12','#1abc9c','#95a5a6','#fd79a8'];
+const INS_ALT = {
+  'all':{'approach':[0,2101957,0,0],'climb':[22637093,0,0,0],'combat':[0,0,44017671,0],'cruise':[0,0,97985004,0],'descent':[18384647,0,0,0],'landing':[150894,0,0,0],'takeoff':[269376,0,0,0],'taxi':[0,363,0,0],'taxi2':[0,167,0,0]},
+  'Mid Air':{'approach':[0,0,0,0],'climb':[0,0,0,0],'combat':[0,0,44017671,0],'cruise':[0,0,97985004,0],'descent':[0,0,0,0],'landing':[0,0,0,0],'takeoff':[0,0,0,0],'taxi':[0,0,0,0],'taxi2':[0,0,0,0]},
+  'Landing':{'approach':[0,2101957,0,0],'climb':[0,0,0,0],'combat':[0,0,0,0],'cruise':[0,0,0,0],'descent':[18384647,0,0,0],'landing':[150894,0,0,0],'takeoff':[0,0,0,0],'taxi':[0,0,0,0],'taxi2':[0,0,0,0]},
+  'Takeoff':{'approach':[0,0,0,0],'climb':[22637093,0,0,0],'combat':[0,0,0,0],'cruise':[0,0,0,0],'descent':[0,0,0,0],'landing':[0,0,0,0],'takeoff':[269376,0,0,0],'taxi':[0,0,0,0],'taxi2':[0,0,0,0]},
+  'Ground Operations':{'approach':[0,0,0,0],'climb':[0,0,0,0],'combat':[0,0,0,0],'cruise':[0,0,0,0],'descent':[0,0,0,0],'landing':[0,0,0,0],'takeoff':[0,0,0,0],'taxi':[0,363,0,0],'taxi2':[0,167,0,0]}
+};
+
+const TABLE_ROWS = [
+  {phase:'approach',cat:'Landing',airspeed:267119.93,radioAlt:1116607.6},
+  {phase:'climb',cat:'Takeoff',airspeed:412340.52,radioAlt:240202.0},
+  {phase:'combat',cat:'Mid Air',airspeed:982810.08,radioAlt:1228.9},
+  {phase:'cruise',cat:'Mid Air',airspeed:1343202.30,radioAlt:2337.4},
+  {phase:'descent',cat:'Landing',airspeed:824888.45,radioAlt:3552.2},
+  {phase:'landing',cat:'Landing',airspeed:55525.86,radioAlt:150853.7},
+  {phase:'takeoff',cat:'Takeoff',airspeed:36083.01,radioAlt:269680.2},
+  {phase:'taxi',cat:'Ground Operations',airspeed:5933.14,radioAlt:981.4},
+  {phase:'taxi2',cat:'Ground Operations',airspeed:2530.93,radioAlt:316.1},
+  {phase:'Total',cat:'',airspeed:3930434.22,radioAlt:1785753.5}
+];
+
+// ======================================================
+// CHART REGISTRY
+// ======================================================
+const CH = {};
+function kill(id){if(CH[id]){CH[id].destroy();delete CH[id]}}
+
+const TOOLTIP_BASE = {
+  backgroundColor:'rgba(16,4,4,.95)',titleColor:'#ff7675',bodyColor:'#f0dada',
+  borderColor:'#5a2020',borderWidth:1,
+  titleFont:{family:'Orbitron',size:10},bodyFont:{family:'Share Tech Mono',size:10},
+  padding:8
+};
+const AXIS_BASE = {
+  grid:{color:'rgba(61,21,21,.35)'},
+  ticks:{color:'#9d7272',font:{family:'Share Tech Mono',size:9}},
+  border:{color:'rgba(61,21,21,.5)'}
+};
+
+function fmtN(n,dec=2){
+  if(n===null||n===undefined)return'—';
+  if(Math.abs(n)>=1e6)return(n/1e6).toFixed(1)+'M';
+  if(Math.abs(n)>=1e3)return(n/1e3).toFixed(dec)+'K';
+  return n.toFixed(dec);
+}
+
+// ======================================================
+// PAGE STATE
+// ======================================================
+let cat1='all', cat2='all';
+
+// ======================================================
+// PAGE SWITCH
+// ======================================================
+function switchPage(i){
+  document.querySelectorAll('.page').forEach((p,j)=>p.classList.toggle('active',i===j));
+  document.querySelectorAll('.ptab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  if(i===0) renderP1(cat1);
+  else renderP2(cat2);
+}
+
+// ======================================================
+// SLICERS
+// ======================================================
+function sliceP1(btn){
+  document.querySelectorAll('#page-0 .sbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  cat1=btn.dataset.cat;
+  renderP1(cat1);
+}
+function sliceP2(btn){
+  document.querySelectorAll('#page-1 .sbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  cat2=btn.dataset.cat;
+  renderP2(cat2);
+}
+
+// ======================================================
+// PAGE 1 RENDER
+// ======================================================
+function renderP1(cat){
+  updateKPI1(cat);
+  renderDonut(cat);
+  renderAltTWP(cat);
+  renderSpdCat(cat);
+  renderSpdTime(cat);
+  renderFuelGrp(cat);
+}
+
+function updateKPI1(cat){
+  const d=KPI[cat];
+  document.getElementById('k-flights').textContent=d.totalFlights>=1000?(d.totalFlights/1000).toFixed(1)+'K':d.totalFlights;
+  document.getElementById('k-avgspd').textContent=d.avgSpeed.toFixed(2);
+  document.getElementById('k-maxspd').textContent=d.maxSpeed.toFixed(2);
+  document.getElementById('k-avgalt').textContent=fmtN(d.avgAlt);
+  document.getElementById('k-maxalt').textContent=fmtN(d.maxAlt);
+  document.getElementById('k-maxfuel').textContent=d.maxFuel.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});
+  document.getElementById('k-minfuel').textContent=d.minFuel.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});
+}
+
+function renderDonut(cat){
+  kill('donut');
+  const vals=CATS.map(c=>{
+    if(cat==='all') return KPI[c].totalFlights;
+    return c===cat?KPI[c].totalFlights:0;
+  });
+  const colors=CATS.map(c=>CAT_COLOR[c]);
+  CH.donut=new Chart(document.getElementById('c-donut').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:CATS,datasets:[{data:vals,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:2,hoverBorderWidth:3}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{...TOOLTIP_BASE,callbacks:{
+          label:ctx=>{
+            const total=vals.reduce((a,b)=>a+b,0);
+            const pct=total>0?(ctx.raw/total*100).toFixed(1)+'%':'0%';
+            return `${ctx.label}: ${ctx.raw.toLocaleString()} (${pct})`;
+          }
+        }}
+      }
+    }
+  });
+  const leg=document.getElementById('lg-donut');
+  leg.innerHTML=CATS.map((c,i)=>vals[i]>0?`<div class="li"><div class="ld" style="background:${colors[i]}"></div>${c}: ${vals[i].toLocaleString()}</div>`:'').join('');
+}
+
+function renderAltTWP(cat){
+  kill('alttwp');
+  let labels, data;
+  if(cat==='all'){
+    labels=ALT_TWP_LABELS; data=ALT_TWP_ALL;
+  } else {
+    const catMap=ALT_TWP_CAT[cat];
+    labels=ALT_TWP_LABELS;
+    data=labels.map(l=>catMap[l]||null);
+  }
+  const ctx=document.getElementById('c-alt-twp').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,190);
+  grad.addColorStop(0,'rgba(116,185,255,.3)');grad.addColorStop(1,'rgba(116,185,255,0)');
+  CH.alttwp=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{data,borderColor:'#74b9ff',backgroundColor:grad,borderWidth:2,pointRadius:3,pointBackgroundColor:'#74b9ff',tension:.4,fill:true,spanGaps:true}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TOOLTIP_BASE,callbacks:{label:ctx=>`Alt: ${fmtN(ctx.raw)} ft`}}},
+      scales:{
+        x:{...AXIS_BASE,title:{display:true,text:'time_to_waypoint (s)',color:'#9d7272',font:{size:9,family:'Share Tech Mono'}}},
+        y:{...AXIS_BASE,title:{display:true,text:'GPS Altitude (ft)',color:'#9d7272',font:{size:9,family:'Share Tech Mono'}},ticks:{...AXIS_BASE.ticks,callback:v=>fmtN(v,0)}}
+      }
+    }
+  });
+}
+
+function renderSpdCat(cat){
+  kill('spdcat');
+  const labels=cat==='all'?CATS:[cat];
+  const vals=labels.map(c=>KPI[c].avgSpeed);
+  const colors=labels.map(c=>CAT_COLOR[c]);
+  CH.spdcat=new Chart(document.getElementById('c-spd-cat').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data:vals,backgroundColor:colors.map(c=>c+'bb'),borderColor:colors,borderWidth:1,borderRadius:3}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{...TOOLTIP_BASE,callbacks:{label:ctx=>`Avg Speed: ${ctx.raw.toFixed(2)} kts`}}},
+      scales:{
+        x:{...AXIS_BASE,title:{display:true,text:'Avg Ground Speed',color:'#9d7272',font:{size:9,family:'Share Tech Mono'}}},
+        y:{...AXIS_BASE}
+      }
+    }
+  });
+}
+
+function renderSpdTime(cat){
+  kill('spdtime');
+  let data;
+  if(cat==='all'){
+    data=SPD_TIME_ALL;
+  } else {
+    const catMap=SPD_TIME_CAT[cat];
+    data=SPD_TIME_LABELS.map(l=>catMap[l]!==undefined?catMap[l]:null);
+  }
+  const ctx=document.getElementById('c-spd-time').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,210);
+  grad.addColorStop(0,'rgba(116,185,255,.25)');grad.addColorStop(1,'rgba(116,185,255,0)');
+  CH.spdtime=new Chart(ctx,{
+    type:'line',
+    data:{labels:SPD_TIME_LABELS,datasets:[{data,borderColor:'#74b9ff',backgroundColor:grad,borderWidth:2,pointRadius:2,pointBackgroundColor:'#74b9ff',tension:.3,fill:true,spanGaps:true}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TOOLTIP_BASE,callbacks:{label:ctx=>`Speed: ${ctx.raw!==null?ctx.raw.toFixed(2):'—'} kts`}}},
+      scales:{
+        x:{...AXIS_BASE,title:{display:true,text:'time (s)',color:'#9d7272',font:{size:9,family:'Share Tech Mono'}}},
+        y:{...AXIS_BASE,title:{display:true,text:'Avg Ground Speed',color:'#9d7272',font:{size:9,family:'Share Tech Mono'}}}
+      }
+    }
+  });
+}
+
+function renderFuelGrp(cat){
+  kill('fuelgrp');
+  const labels=cat==='all'?CATS:[cat];
+  const maxVals=labels.map(c=>KPI[c].maxFuel);
+  const minVals=labels.map(c=>KPI[c].minFuel);
+  CH.fuelgrp=new Chart(document.getElementById('c-fuel-grp').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Max Fuel Flow',data:maxVals,backgroundColor:'#74b9ffbb',borderColor:'#74b9ff',borderWidth:1,borderRadius:3},
+      {label:'Min Fuel Flow',data:minVals,backgroundColor:'#e74c3cbb',borderColor:'#e74c3c',borderWidth:1,borderRadius:3}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TOOLTIP_BASE}},
+      scales:{
+        x:{...AXIS_BASE},
+        y:{...AXIS_BASE,title:{display:true,text:'Fuel Flow (kg/hr)',color:'#9d7272',font:{size:9,family:'Share Tech Mono'}},ticks:{...AXIS_BASE.ticks,callback:v=>v.toLocaleString()}}
+      }
+    }
+  });
+}
+
+// ======================================================
+// PAGE 2 RENDER
+// ======================================================
+function renderP2(cat){
+  updateKPI2(cat);
+  renderWaterfall(cat);
+  renderFuPctBar(cat);
+  renderScatter(cat);
+  renderAltStacked(cat);
+  renderTable(cat);
+}
+
+function updateKPI2(cat){
+  const d=KPI[cat];
+  const me=document.getElementById('k-meff');
+  me.textContent=d.missionEff.toFixed(4);
+  me.className='kpi-lg-val '+(d.missionEff<0?'neg':'');
+  document.getElementById('k-fupct').textContent=(d.fuelUsagePct*100).toFixed(2)+'%';
+}
+
+function renderWaterfall(cat){
+  kill('wfall');
+  let labels,rawVals,types;
+  if(cat==='all'){
+    labels=['Mid Air','Landing','Takeoff','Gnd Ops','TOTAL'];
+    rawVals=[6158.9,4382.0,6152.9,2363.1,6158.9];
+    types=['increase','increase','increase','increase','total'];
+  } else {
+    labels=[cat,'TOTAL'];
+    rawVals=[KPI[cat].maxFuel,KPI[cat].maxFuel];
+    types=['increase','total'];
+  }
+  const colors=types.map(t=>t==='increase'?'#00b894bb':t==='decrease'?'#e74c3cbb':'#74b9ffbb');
+  const borderColors=types.map(t=>t==='increase'?'#00b894':t==='decrease'?'#e74c3c':'#74b9ff');
+  CH.wfall=new Chart(document.getElementById('c-wfall').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data:rawVals,backgroundColor:colors,borderColor:borderColors,borderWidth:1,borderRadius:3}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TOOLTIP_BASE,callbacks:{label:ctx=>`${ctx.raw.toFixed(1)} kg/hr`}}},
+      scales:{
+        x:{...AXIS_BASE},
+        y:{...AXIS_BASE,ticks:{...AXIS_BASE.ticks,callback:v=>fmtN(v,0)},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function renderFuPctBar(cat){
+  kill('fupct');
+  const labels=cat==='all'?CATS:[cat];
+  const vals=labels.map(c=>(KPI[c].fuelUsagePct*100));
+  const colors=labels.map(c=>CAT_COLOR[c]);
+  CH.fupct=new Chart(document.getElementById('c-fupct-bar').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data:vals,backgroundColor:colors.map(c=>c+'bb'),borderColor:colors,borderWidth:1,borderRadius:3}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},tooltip:{...TOOLTIP_BASE,callbacks:{label:ctx=>`${ctx.raw.toFixed(2)}%`}}},
+      scales:{
+        x:{...AXIS_BASE,title:{display:true,text:'Fuel Usage %',color:'#9d7272',font:{size:9,family:'Share Tech Mono'}},ticks:{...AXIS_BASE.ticks,callback:v=>v.toFixed(1)+'%'}},
+        y:{...AXIS_BASE}
+      }
+    }
+  });
+}
+
+function renderScatter(cat){
+  kill('scatter');
+  let datasets;
+  const catsToShow=cat==='all'?CATS:[cat];
+  datasets=catsToShow.map(c=>({
+    label:c,
+    data:SCATTER[c].map(p=>({x:p[0],y:p[1]})),
+    backgroundColor:CAT_COLOR[c]+'99',
+    borderColor:CAT_COLOR[c],
+    pointRadius:3,pointHoverRadius:5
+  }));
+  CH.scatter=new Chart(document.getElementById('c-scatter').getContext('2d'),{
+    type:'scatter',
+    data:{datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TOOLTIP_BASE,callbacks:{label:ctx=>`Speed:${ctx.parsed.x.toFixed(1)} | t:${ctx.parsed.y.toFixed(1)}`}}},
+      scales:{
+        x:{...AXIS_BASE,title:{display:true,text:'Ground Speed (kts)',color:'#9d7272',font:{size:9,family:'Share Tech Mono'}}},
+        y:{...AXIS_BASE,title:{display:true,text:'Time (s)',color:'#9d7272',font:{size:9,family:'Share Tech Mono'}}}
+      }
+    }
+  });
+  const leg=document.getElementById('lg-scatter');
+  leg.innerHTML=datasets.map(d=>`<div class="li"><div class="ld" style="background:${CAT_COLOR[d.label]}"></div>${d.label}</div>`).join('');
+}
+
+function renderAltStacked(cat){
+  kill('altstk');
+  const catsToShow=cat==='all'?CATS:[cat];
+  const phaseData=INS_ALT[cat];
+  const catIdxs=catsToShow.map(c=>CATS.indexOf(c));
+  const datasets=INS_ALT_PHASES.map((ph,pi)=>{
+    const vals=catsToShow.map(c=>{
+      const idx=CATS.indexOf(c);
+      return (phaseData[ph]||[0,0,0,0])[idx]||0;
+    });
+    return {label:ph,data:vals,backgroundColor:INS_ALT_COLORS[pi]+'cc',borderColor:INS_ALT_COLORS[pi],borderWidth:1,stack:'s0'};
+  });
+  CH.altstk=new Chart(document.getElementById('c-alt-stk').getContext('2d'),{
+    type:'bar',
+    data:{labels:catsToShow,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{...TOOLTIP_BASE,callbacks:{label:ctx=>`${ctx.dataset.label}: ${fmtN(ctx.raw,1)}`}}},
+      scales:{
+        x:{...AXIS_BASE,stacked:true},
+        y:{...AXIS_BASE,stacked:true,ticks:{...AXIS_BASE.ticks,callback:v=>fmtN(v,0)}}
+      }
+    }
+  });
+  const leg=document.getElementById('lg-alt-stk');
+  leg.innerHTML=INS_ALT_PHASES.map((ph,pi)=>`<div class="li"><div class="lb" style="background:${INS_ALT_COLORS[pi]}"></div>${ph}</div>`).join('');
+}
+
+function renderTable(cat){
+  const rows=cat==='all'?TABLE_ROWS:TABLE_ROWS.filter(r=>r.cat===cat||r.phase==='Total');
+  document.getElementById('tbl-body').innerHTML=rows.map(r=>`
+    <tr class="${r.phase==='Total'?'tr-total':''}">
+      <td>${r.phase}</td>
+      <td>${r.cat}</td>
+      <td>${r.airspeed.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td>${r.radioAlt.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})}</td>
+    </tr>`).join('');
+}
+
+// ======================================================
+// INIT
+// ======================================================
+document.addEventListener('DOMContentLoaded',()=>{renderP1('all')});
+</script>
+</body>
+</html>
